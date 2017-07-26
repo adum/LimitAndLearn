@@ -132,6 +132,7 @@ namespace ScreentimeWatcher
                 {
                     try
                     {
+                        // the following line threw once, so surrounding this with a try catch to see if that helps
                         g.CopyFromScreen(Screen.PrimaryScreen.Bounds.X,
                                      Screen.PrimaryScreen.Bounds.Y,
                                      0, 0,
