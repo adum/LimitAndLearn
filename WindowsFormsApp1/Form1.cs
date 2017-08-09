@@ -102,15 +102,22 @@ namespace ScreentimeWatcher
                 Console.WriteLine("Sending dirty");
                 String url = "http://test.goproblems.com/test/lock/srec.php?uid=0";
                 //                var responseString = await client.GetStringAsync(url);
-                using (var wb = new WebClient())
+                try
                 {
-                    var response = wb.DownloadString(url);
-                    Console.WriteLine(response);
+                    using (var wb = new WebClient())
+                    {
+                        var response = wb.DownloadString(url);
+                        Console.WriteLine(response);
 
-//                    var ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-//                   ser.DeserializeObject(json);
+                        //                    var ser = new System.Web.Script.Serialization.JavaScriptSerializer();
+                        //                   ser.DeserializeObject(json);
+                    }
+                    dirtyStreak = false;
                 }
-                dirtyStreak = false;
+                catch (Exception exception)
+                {
+                    Console.WriteLine(exception);
+                }
             }
         }
 
