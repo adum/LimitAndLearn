@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -45,6 +46,8 @@ namespace ScreentimeWatcher
             InitTimer();
             InitTimerReborn();
 
+            this.TopMost = true;
+
             canPlayTimer = new Timer();
             canPlayTimer.Tick += new EventHandler(TimerCanPlay_Tick);
             canPlayTimer.Interval = 1000 * 5; // in miliseconds
@@ -56,9 +59,45 @@ namespace ScreentimeWatcher
             statusTimer.Start();
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int left;
+            public int top;
+            public int right;
+            public int bottom;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(HandleRef hWnd, [In, Out] ref RECT rect);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        public static bool IsForegroundFullScreen()
+        {
+            return IsForegroundFullScreen(null);
+        }
+
+        public static bool IsForegroundFullScreen(Screen screen)
+        {
+            if (screen == null)
+            {
+                screen = Screen.PrimaryScreen;
+            }
+            RECT rect = new RECT();
+            GetWindowRect(new HandleRef(null, GetForegroundWindow()), ref rect);
+            return new Rectangle(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top).Contains(screen.Bounds);
+        }
+
         private void Form1_Load(object sender, EventArgs e)
         {
         }
+
+        [DllImport("user32.dll")]
+        private static extern
+         bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+        private const int SW_HIDE = 0;
 
         private void TimerCanPlay_Tick(object sender, EventArgs e)
         {
@@ -68,15 +107,16 @@ namespace ScreentimeWatcher
                 try
                 {
                     var response = wb.DownloadString(url);
-                    Console.WriteLine(response);
+                    Console.WriteLine("can play:" + response);
                     if (response == "1")
                     {
-                        Console.WriteLine("can play");
+//                        Console.WriteLine("can play");
                     }
                     else
                     {
                         if (!inTest && dirtyStreak)
                         {
+                            Console.WriteLine("max it");
                             inTest = true;
                             this.WindowState = FormWindowState.Maximized;
                             this.webBrowser1.Navigate("http://test.goproblems.com/test/lock/mul.php");
@@ -146,8 +186,8 @@ namespace ScreentimeWatcher
                                      bmpScreenCapture.Size,
                                      CopyPixelOperation.SourceCopy);
 
-                        Color c = bmpScreenCapture.GetPixel(100, 100);
-                        Console.WriteLine(c);
+//                        Color c = bmpScreenCapture.GetPixel(100, 100);
+//                        Console.WriteLine(c);
 
                         Color[,] cc = ExtractPixels(bmpScreenCapture);
                         if (lastPix != null)
@@ -176,8 +216,20 @@ namespace ScreentimeWatcher
                 if (!b) streak = false;
             }
             if (hist.Count < HIST) streak = false;
-            Console.WriteLine("streak: {0}", streak);
+
+            bool fscreen = IsForegroundFullScreen();
+            Console.WriteLine("streak: {0} ({1}) -- fs={2}", streak, hist.Count, fscreen);
             if (streak) dirtyStreak = true;
+
+            if (fscreen && inTest)
+            {
+                Console.WriteLine("hiding fs window");
+                IntPtr w = GetForegroundWindow();
+                if (w != this.Handle)
+                    ShowWindowAsync(w, SW_HIDE);
+                //                this.WindowState = FormWindowState.Maximized;
+                this.Show();
+            }
         }
 
         private int DeltaPix(Color[,] p1, Color[,] p2)
@@ -189,9 +241,9 @@ namespace ScreentimeWatcher
                 {
                     bool eq = p1[x, y].Equals(p2[x, y]);
                     if (!eq) cnt++;
-                    Console.Write(eq ? '.' : 'x');
+//                    Console.Write(eq ? '.' : 'x');
                 }
-                Console.WriteLine();
+//                Console.WriteLine();
             }
             return cnt;
         }
