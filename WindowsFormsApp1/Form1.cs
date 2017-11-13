@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Net;
@@ -73,6 +74,19 @@ namespace ScreentimeWatcher
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
+
+        private bool IsAutoclickerRunning()
+        {
+            //Process[] localAll = Process.GetProcesses();
+            //foreach (Process loc in localAll)
+            //{
+            //    Console.WriteLine(loc.ProcessName);
+            //}
+            Process[] pp = Process.GetProcessesByName("AutoHotkey");
+//            Process[] pp = Process.GetProcessesByName("notepad");
+            return pp.Length > 0;
+//            return false;
+        }
 
         public static bool IsForegroundFullScreen()
         {
@@ -210,6 +224,10 @@ namespace ScreentimeWatcher
 
         private void CheckHistoryStreak()
         {
+            bool inClicker = IsAutoclickerRunning();
+            Console.WriteLine("in clicker: {0}", inClicker);
+            if (inClicker) return; // don't block if using auto-clicker
+
             bool streak = true;
             foreach (bool b in hist)
             {
